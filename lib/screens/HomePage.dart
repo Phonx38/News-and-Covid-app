@@ -1,19 +1,28 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_icons/flutter_icons.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:news_app/helper/crud.dart';
 import 'package:news_app/helper/data.dart';
 import 'package:news_app/helper/news.dart';
 import 'package:news_app/models/article_model.dart';
 import 'package:news_app/models/category_model.dart';
+import 'package:news_app/models/newshouseModel.dart';
 import 'package:news_app/models/popularnews_model.dart';
 import 'package:news_app/screens/article_detail.dart';
 import 'package:news_app/screens/category.dart';
+import 'package:news_app/screens/covid/corona.dart';
 import 'package:news_app/screens/login.dart';
+import 'package:news_app/screens/newsHousescreen.dart';
+import 'package:news_app/screens/saved.dart';
 import 'package:news_app/widgets/carouselSlide.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'package:news_app/widgets/searchbar.dart';
+import 'package:news_app/widgets/transition.dart';
+import 'package:shimmer/shimmer.dart';
 
   
 DateFormat dateFormat = DateFormat("dd-MM-yyyy"); 
@@ -22,17 +31,25 @@ String string = dateFormat.format(DateTime.now());
 
 
 class HomePage extends StatefulWidget {
+  final FirebaseUser currentUser;
+  HomePage({
+    this.currentUser
+  });
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  
+   bool _isAppbar = true;
+      ScrollController _scrollController = new ScrollController();
+
+
 
   
   FirebaseUser currentUser;
   final GoogleSignIn googleAuth = new GoogleSignIn();
-  
+
+  List<NewshouseModel> newshouses = new List<NewshouseModel>();
   List<CategorieModel> categories = new List<CategorieModel>();
   List<ArticleModel> articles = new List<ArticleModel>();
   List<ArticleModel> popularArticles = new List<ArticleModel>();
@@ -68,6 +85,7 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
 
   
 
+ 
 
   Future<void> getNews() async{
     News newsClass = News();
@@ -93,11 +111,29 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
   void initState() {
     _loading = true;
     super.initState();
+    _scrollController.addListener(() {
+          if (_scrollController.position.userScrollDirection ==
+              ScrollDirection.reverse) {
+            appBarStatus(false);
+          }
+          if (_scrollController.position.userScrollDirection ==
+              ScrollDirection.forward) {
+            appBarStatus(true);
+          }
+        });
     _loadCurrentUser();
+    newshouses = getNewsHouses();
     categories = getCategories();
     getNews();
     getPopularNews();
   }
+  
+      void appBarStatus(bool status) {
+        setState(() {
+          _isAppbar = status;
+        });
+      }
+  
   
   void signOut(){
     googleAuth.signOut();
@@ -106,6 +142,16 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.pink[900],
+        child: Image.asset('images/06.png'),
+        onPressed: (){
+          Navigator.push(context,MaterialPageRoute(builder: (context)=>CoronaVirus()));
+        }
+      ),
+
+
+      backgroundColor: Colors.white,
       drawer: Drawer(
         child: ListView(
           children: <Widget>[
@@ -120,29 +166,47 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
         ),
       ),
       // backgroundColor: Color.fromRGBO(242,242,242,1),
-      appBar: AppBar(
-        title:  Text("Samachar",style: TextStyle(color: Colors.black,fontSize: 20,fontFamily:'AbrilFatface-Regular'),),
-        centerTitle: true,
-        elevation: 0,
-        leading: Builder(
-              builder: (context) => Center(
-                child: Card(
-                  margin: EdgeInsets.only(top:0,left: 0),
-                  elevation: 2.0,
-                  
-                  child: GestureDetector(
-                    
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Icon(Icons.sort,size: 20,),
-                        ),
-                        onTap: () => Scaffold.of(context).openDrawer(),
-                        // tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight),
+        child: AnimatedContainer(
+          height:  _isAppbar ? 80.0 : 0.0,
+          duration: Duration(milliseconds: 200),
+          child: AppBar(
+            title:  Text("Samachar",style: TextStyle(color: Colors.black,fontSize: 20,fontFamily:'AbrilFatface-Regular'),),
+          
+
+            elevation: 0,
+            leading: Builder(
+                  builder: (context) => Center(
+                    child: Card(
+                      margin: EdgeInsets.only(top:0,left: 0),
+                      elevation: 2.0,
+                      
+                      child: GestureDetector(
                         
-                      ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: Icon(Icons.sort,size: 20,),
+                            ),
+                            onTap: () => Scaffold.of(context).openDrawer(),
+                            // tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+                            
+                          ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
+                actions: <Widget>[
+                  InkWell(
+                    onTap: (){
+                      Navigator.push(context, SlideLeftRoute(page:Saved()));
+                    },
+                    child: Icon(Icons.bookmark_border,size:25,color: Colors.black87,)),
+                  SizedBox(width:5),
+                  Icon(Icons.notifications_none,size:25,color: Colors.black87,),
+                  SizedBox(width:5)
+                ],
+          ),
+        ),
       ),
       body:_loading ? Center(
         child: Image.asset("images/loader.gif",height:150,width: 150,fit: BoxFit.fill,)
@@ -160,7 +224,11 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Padding(
-                    padding: const EdgeInsets.only(top:8.0,bottom: 0.0,left: 5),
+                    padding: const EdgeInsets.only(top:25.0,bottom: 8.0,left: 8,right: 8),
+                    child: SearchField(),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top:20.0,bottom: 0.0,left: 5),
                     child: Container(
                       height: 65,
                       child: ListView.builder(
@@ -179,7 +247,7 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
                   ),
                   
                   Padding(
-                    padding: const EdgeInsets.only(left:8.0,top: 8.0,right: 8.0,bottom: 2.0),
+                    padding: const EdgeInsets.only(left:8.0,top: 15.0,right: 8.0,bottom: 2.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
@@ -191,13 +259,19 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
                               print(articles[2]);
                             }
                           },
-                          child: Text("News today",style: TextStyle(fontSize: 25,color: Colors.black,fontWeight: FontWeight.w600),)),
+                          child: Text("News today",style: GoogleFonts.montserrat(
+                          textStyle: TextStyle(
+                            color: Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 30
+                        ),),),
+                        ),
                         SizedBox(height: 3,),
                         Row(
                           children: <Widget>[
-                            Icon(Feather.calendar,size :16,color: Colors.grey[600],),
+                            Icon(Feather.calendar,size :12,color: Colors.black87),
                             SizedBox(width:5),
-                            Text(string,style: TextStyle(fontSize: 15,color: Colors.grey[600]),),
+                            Text(string,style: TextStyle(fontSize: 12,color: Colors.black87),),
                           ],
                         )
                       ],
@@ -205,29 +279,50 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
                   ),
                   
                   Container(
+                    
+                    height: 280,
+                    width: MediaQuery.of(context).size.width,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: popularArticles.length,
+                      itemBuilder: (context,index){
+                        return AdCarousel(
+                          title: popularArticles[index].title ?? "",
+                          imageUrl: popularArticles[index].urlToImage?? "",
+                          author: popularArticles[index].author?? "",
+                          url: popularArticles[index].url ?? "",
+                          );
+                      }
+                    ),
+                    ),
 
-                  height: 350,
-                  width: MediaQuery.of(context).size.width,
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: popularArticles.length,
-                    itemBuilder: (context,index){
-                      return AdCarousel(
-                        title: popularArticles[index].title ?? "",
-                        imageUrl: popularArticles[index].urlToImage?? "",
-                        author: popularArticles[index].author?? "",
-                        url: popularArticles[index].url ?? "",
-                        );
-                    }
-                  ),
-                  ),
-                
+
+                   Container(
+                     padding: const EdgeInsets.only(top:8.0,bottom: 0.0,left: 5),
+                     height: 100,
+                     child: ListView.builder(
+                       
+                       itemCount: newshouses.length,
+                       shrinkWrap: true,
+                       scrollDirection: Axis.horizontal,
+                       itemBuilder: (context,index){
+                         return NewsHouseTile(
+                           sourceId: newshouses[index].sourceId ,
+                         );
+                       },
+                     ),
+                   ),
 
                   ///headlines
                   Padding(
-                    padding: const EdgeInsets.only(top:5.0,bottom: 0,right: 8.0,left: 10.0),
-                    child: Text("Top Headlines",style: TextStyle(fontSize: 18,color: Colors.black,fontWeight: FontWeight.w600,),),
+                    padding: const EdgeInsets.only(top:15.0,bottom: 0,right: 8.0,left: 10.0),
+                    child: Text("Top Headlines",style: GoogleFonts.poppins(
+                          textStyle: TextStyle(
+                            color: Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20
+                        ),),),
                   ),
                   
                   Padding(
@@ -242,6 +337,8 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
         
                       padding: EdgeInsets.only(bottom: 10,left: 8.0,right: 8.0,top: 10),
                       child: ListView.builder(
+                       controller: _scrollController,
+                        
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),
                         itemCount: articles.length,
@@ -249,6 +346,7 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
                           return Padding(
                             padding: const EdgeInsets.only(bottom:5.0,top: 0.0),
                             child: BlogTile(
+                              uid: currentUser.uid.toString(),
                               imageUrl: articles[index].urlToImage ?? "",
                               title: articles[index].title ?? "",
                               desc: articles[index].description ?? "",
@@ -288,7 +386,7 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       padding: const EdgeInsets.only(top: 10.0,bottom: 10.0,right: 8),
       child: GestureDetector(
         onTap: (){
-          Navigator.push(context, MaterialPageRoute(builder: (context)=>CategoryNews(
+          Navigator.push(context,SlideLeftRoute(page:CategoryNews(
             category: categoryName.toLowerCase(),
           )));
         },
@@ -300,17 +398,20 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
                 child: Image.network(imageUrl,width:100,height: 50 ,fit: BoxFit.cover,)),
               Container(
                 decoration: BoxDecoration(
-                  // color:Color.fromRGBO(116,125,254,1),
-                  color: Color.fromRGBO(40, 50, 74, 1),
-                                  borderRadius: BorderRadius.circular(10),
+
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: [Color.fromRGBO(83, 105, 118,1),Color.fromRGBO(41, 46, 73,1)])
                 ),
                 alignment: Alignment.center,
-                width:120,height: 50 ,
+                width:120,height: 60 ,
                 
                 child: Text(categoryName,
                 style: TextStyle(
                   color:Colors.white,
-                  fontWeight: FontWeight.bold,
+                  // fontWeight: FontWeight.bold,
                   fontSize: 12
                 ),),
               )
@@ -323,9 +424,60 @@ final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
   }
 }
 
+
+
+
+ class NewsHouseTile extends StatelessWidget {
+  final sourceId;
+ 
+
+  NewsHouseTile({this.sourceId});
+
+  @override
+
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10.0,bottom: 10.0,right: 8,left: 8),
+      child: GestureDetector(
+        onTap: (){
+          Navigator.push(context, SlideLeftRoute(page:NewsHouses(
+            source: sourceId.toLowerCase(),
+          )));
+        },
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.only(top: 10.0,bottom: 10.0,right: 8),
+             decoration: BoxDecoration(
+
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: LinearGradient(
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                      colors: [Color.fromRGBO(83, 105, 118,1),Color.fromRGBO(41, 46, 73,1)])
+                  ),
+                  
+            alignment: Alignment.center,
+            width:120,height: 100 ,
+            
+            child: Text(sourceId.toUpperCase(),
+            style: GoogleFonts.montserrat(
+              textStyle: TextStyle(
+              color:Colors.white,
+              // fontWeight: FontWeight.bold,
+              fontSize: 12
+            ),),)
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+
 class BlogTile extends StatefulWidget {
-  final String imageUrl,title,desc,author,url;
-  BlogTile({@required this.imageUrl,@required this.title,@required this.desc,this.author,@required this.url});
+  final String imageUrl,title,desc,author,url,uid;
+  BlogTile({@required this.imageUrl,this.uid,@required this.title,this.desc,this.author,@required this.url});
 
   @override
   _BlogTileState createState() => _BlogTileState();
@@ -334,6 +486,8 @@ class BlogTile extends StatefulWidget {
 class _BlogTileState extends State<BlogTile> {
   bool isBookmarked = false;
    crudMethods crudObj = new crudMethods();
+   
+    
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -346,81 +500,142 @@ class _BlogTileState extends State<BlogTile> {
           ));
         },
       
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10) ),
-        child: Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10),color: Colors.white),
-         
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Container(
-              //  height: MediaQuery.of(context).size.height*0.15,
-               width: MediaQuery.of(context).size.width,
-              child: Column(
-                children: <Widget>[
-                  Stack(
-                    children: <Widget>[
-                      Container(
-                         height: MediaQuery.of(context).size.height*0.15,
-                        width: MediaQuery.of(context).size.width,   
-                        child:ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: CachedNetworkImage(imageUrl:widget.imageUrl,height: 120,width: 120,fit: BoxFit.fill,)
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10) ),
+          child: Container(
+            decoration: BoxDecoration(
+               boxShadow: [
+            BoxShadow(
+              color: Colors.grey[200],
+              blurRadius: 20.0, // soften the shadow
+              spreadRadius: 10.0, //extend the shadow
+              offset: Offset(
+                5.0, // Move to right 10  horizontally
+                5.0, // Move to bottom 10 Vertically
+              ),
+            )
+          ],
+              borderRadius: BorderRadius.circular(10),color: Colors.white),
+           
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                //  height: MediaQuery.of(context).size.height*0.15,
+                 width: MediaQuery.of(context).size.width,
+                child: Column(
+                  children: <Widget>[
+                    Stack(
+                      children: <Widget>[
+                        Container(
+                           height: MediaQuery.of(context).size.height*0.3,
+                          width: MediaQuery.of(context).size.width,   
+                          child:ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: CachedNetworkImage(
+                               placeholder:(context, url) => Container(
+                                 decoration: BoxDecoration(
+                                   gradient: LinearGradient(
+                                    begin: Alignment.topRight,
+                                    end: Alignment.bottomLeft,
+                                    colors: [Color.fromRGBO(83, 105, 118,1),Color.fromRGBO(41, 46, 73,1)])
+                                 )  ,
+                                 height: 300,
+                                 width: 300,
+                                 child: Center(
+                                   child: Shimmer.fromColors(
+                                         baseColor: Colors.grey[600],
+                                        highlightColor: Colors.white,
+ 
+                                     child: Text(
+                                       'Samachar',
+                                       style:TextStyle(
+                          fontSize: 25,
+                          color: Colors.grey[400],
+                          fontFamily: 'LibreBaskerville-Bold'
+                        )
+                                     ),
+                                   ),
+                                 ),
+                               ),
+                              imageUrl:widget.imageUrl,height: 300,width: 300,fit: BoxFit.fill,)
+                            ),
+                        ),
+
+                      Positioned(
+                        top: 5,
+                        right: 5,
+                        child: GestureDetector(
+                          onTap: (){
+                            setState(() {
+                              isBookmarked =true ;
+                            });
+                            Map<String,dynamic> newsData = <String,dynamic> {'uid':widget.uid,'title':widget.title,'image':widget.imageUrl,'url':widget.url,'author':widget.author};
+                            crudObj.addData(newsData).then((result){
+                              Scaffold.of(context).showSnackBar( SnackBar(content:Text('News is bookmarked')));
+                            }).catchError((e){
+                              print(e);
+                            });
+                          },
+                          child: Card(
+                            elevation: 2,
+                            shape: CircleBorder(),
+                            child: Container(
+                              height: 30,
+                              width: 30,
+                              color: Colors.transparent,
+                              child: isBookmarked? Icon(Icons.bookmark,size: 20,color: Colors.redAccent,):Icon(Icons.bookmark_border,size: 20,color: Colors.black87)
+                            ),
                           ),
+                        ),
                       ),
 
-                    Positioned(
-                      right: 5,
-                      child: GestureDetector(
-                        onTap: (){
-                          setState(() {
-                            isBookmarked = !isBookmarked;
-                          });
-                          Map<String,dynamic> newsData = <String,dynamic> {'title':widget.title,'image':widget.imageUrl,'url':widget.url,'author':widget.author};
-                          crudObj.addData(newsData).then((result){
-                            SnackBar(content: Text('News is bookmarked'));
-                          }).catchError((e){
-                            print(e);
-                          });
-                        },
-                        child: Container(
-                          height: 40,
-                          width: 40,
-                          color: Colors.transparent,
-                          child: isBookmarked? Icon(Icons.bookmark,size: 25,color: Colors.redAccent,):Icon(Icons.bookmark,size: 25,color: Colors.grey[200],)
+                      ],
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          widget.title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
+                    SizedBox(height:10),
 
-                    ],
-                  ),
-                  Container(
-                    width: MediaQuery.of(context).size.width,
-                    child: Text(
-                      widget.title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500
-                      ),
-                    ),
-                  ),
-                  SizedBox(height:10),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: <Widget>[
-                      Container(child: Text(widget.author??''))
-                    ],
-                  )
-                ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: <Widget>[
+                        Container(
+                          color: Colors.grey[300],
+                          child: Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: Expanded(
+                              child: Text(widget.author??'',style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'LibreBaskerville-Bold'
+                              ),),
+                            ),
+                          ))
+                      ],
+                    )
+                  ],
+                ),
               ),
-            ),
 
-            
+              
+              
+            ),
             
           ),
-          
         ),
       ),
     );
@@ -451,7 +666,7 @@ class AdCarousel extends StatelessWidget {
         ));
         },
         child: Container(
-          height:350,
+          height:300,
           decoration: BoxDecoration(
             boxShadow: [
           BoxShadow(
@@ -473,10 +688,34 @@ class AdCarousel extends StatelessWidget {
               children: <Widget>[
                 
                 CachedNetworkImage(
+                  placeholder:(context, url) => Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: [Color.fromRGBO(83, 105, 118,1),Color.fromRGBO(41, 46, 73,1)])
+                    )  ,
+                    height: 300,
+                    width: 300,
+                    child: Center(
+                      child: Shimmer.fromColors(
+                        baseColor: Colors.grey[600],
+                                        highlightColor: Colors.white,
+                        child: Text(
+                          'Samachar',
+                          style:TextStyle(
+                            fontSize: 25,
+                            color: Colors.grey[400],
+                            fontFamily: 'LibreBaskerville-Bold'
+                          )
+                        ),
+                      ),
+                    ),
+                  ),
                  imageUrl:imageUrl,
                   // color: secondary,
-                  height: 350.0,
-                  width: 220.0,
+                  height: 300.0,
+                  width: 300.0,
                   fit: BoxFit.fill,
                 ),
                 // Container(
@@ -488,7 +727,7 @@ class AdCarousel extends StatelessWidget {
                   alignment: Alignment.bottomCenter,
                   child: Container(
                     height: 150,
-                    width: 220,
+                    width: 300,
 
                     child: Padding(
                       padding: const EdgeInsets.only(left:0.0),
@@ -523,8 +762,8 @@ class AdCarousel extends StatelessWidget {
                       children: <Widget>[
                         Container(
                           
-                          width: 200,
-                          child:Text(title,style: TextStyle(fontSize: 15,color: Colors.white,fontWeight: FontWeight.bold,))
+                          width: 300,
+                          child:Text(title,style: TextStyle(fontSize: 13,color: Colors.grey[300],))
                         ),
                       ],
                     )
@@ -546,72 +785,3 @@ class AdCarousel extends StatelessWidget {
 
 
 
-
-
-// Row(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               mainAxisAlignment: MainAxisAlignment.start,
-//               children: <Widget>[
-//                 ClipRRect(
-//                   borderRadius: BorderRadius.circular(10),
-//                   child: CachedNetworkImage(imageUrl:imageUrl,height: 120,width: 120,fit: BoxFit.fill,)
-//                   ),
-//                 Padding(
-//                   padding: const EdgeInsets.all(4.0),
-//                   child: Container(
-//                     margin: EdgeInsets.only(left:5),
-//                     width: MediaQuery.of(context).size.width*0.51,
-//                     height: MediaQuery.of(context).size.height*0.16,
-//                     child: Column(
-//                       mainAxisAlignment: MainAxisAlignment.start,
-//                       crossAxisAlignment: CrossAxisAlignment.start,
-//                       children: <Widget>[
-//                         Expanded(
-//                           child: Container(
-//                             width: MediaQuery.of(context).size.width*0.7,
-//                             child: Wrap(
-//                               children: <Widget>[
-//                                 Text(title,softWrap: true,style: TextStyle(
-//                                 // fontWeight: FontWeight.bold,
-                                
-//                                 fontSize: 13
-//                               ),)
-//                               ] ,
-//                             ),
-//                           ),
-//                         ),
-
-
-//                         SizedBox(height:20),
-
-//                         Text(author??'',style: TextStyle(
-//                             color: Colors.grey,
-//                             fontSize: 11
-//                           ),),
-                        
-//                         Row(
-//                           mainAxisAlignment: MainAxisAlignment.end,
-//                           crossAxisAlignment: CrossAxisAlignment.end,
-//                           children: <Widget>[
-//                             IconButton(icon: Icon(Icons.bookmark,color:Colors.grey[400],size:25), onPressed: null),
-//                           ],
-//                         ),
-                        
-//                       ],
-//                     ),
-//                   ),
-//                 )
-//               ],
-//             ),
-
-
-
-
-
-
-
-
-
-class News1{
-  
-}

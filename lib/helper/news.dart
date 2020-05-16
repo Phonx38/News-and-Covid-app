@@ -71,6 +71,37 @@ class CategoryNewsClass{
 }
 
 
+class NewsHouseClass{
+  List<ArticleModel> news = [];
+  
+
+  Future<void> getNews(String source) async {
+    String url = 'https://newsapi.org/v2/everything?sources=$source&pageSize=50&apiKey=63e356c3fd7749afae2de1dacaebd799';
+    var response = await http.get(url);
+    var jsonData = jsonDecode(response.body);
+
+    if(jsonData['status'] == "ok"){
+      jsonData["articles"].forEach((element){
+        if(element["urlToImage"] != null && element["description"] != null){
+          ArticleModel articleModel = ArticleModel(
+            title: element['title'],
+            author: element['author'],
+            description: element['description'],
+            url: element['url'],
+            urlToImage: element['urlToImage'],
+            content: element['content'],
+            // publishedAt: element['publishedAt']
+          );
+          news.add(articleModel);
+        }
+      });
+    }
+  }
+
+  
+}
+
+
 
 
 class SliderNewsClass{

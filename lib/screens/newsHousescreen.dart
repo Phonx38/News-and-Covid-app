@@ -37,22 +37,24 @@ class _NewsHousesState extends State<NewsHouses> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromRGBO(242, 242, 242, 1),
+       backgroundColor: Colors.white,
        appBar: AppBar(
         title:  Text(widget.source.toUpperCase()?? '' ,style: TextStyle(color: Colors.black,fontSize: 15,fontFamily:'LibreBaskerville-Bold'),),
-        centerTitle: true,
+        
         elevation: 0,
         automaticallyImplyLeading: true,
       ),
 
       body: _loading ? Center(
         child: Card(
-
+          
           elevation: 5.0,
           shape: CircleBorder(),
           child: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(
+              valueColor: new AlwaysStoppedAnimation<Color>(Colors.black87),
+            ),
           ))
       ):Container(
         child: SafeArea(
@@ -83,7 +85,7 @@ class _NewsHousesState extends State<NewsHouses> {
                             imageUrl: articles[index].urlToImage ?? '',
                             title: articles[index].title??'',
                             desc: articles[index].description??'',
-                            publishedAt: articles[index].publishedAt??'' ,
+                            // publishedAt: articles[index].publishedAt??'' ,
                             author: articles[index].author ?? '',
                             url: articles[index].url??'',
                           ),

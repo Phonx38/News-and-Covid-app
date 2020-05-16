@@ -13,8 +13,9 @@ class ArticleView extends StatefulWidget {
 }
 
 class _ArticleViewState extends State<ArticleView> {
-  bool _loading = true;
+  bool isLoading = true;
   final Completer<WebViewController> _completer = Completer<WebViewController>();
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,24 +26,29 @@ class _ArticleViewState extends State<ArticleView> {
         automaticallyImplyLeading: true,
       ),
 
-      body: Container(
-        height: MediaQuery.of(context).size.height,
-        width:MediaQuery.of(context).size.width ,
-      child: WebView(
-        initialMediaPlaybackPolicy: AutoMediaPlaybackPolicy.require_user_action_for_all_media_types,
-        javascriptMode: JavascriptMode.unrestricted,
-        initialUrl: widget.blogUrl,
-        onWebViewCreated: ((WebViewController webViewController){
-          _completer.complete(webViewController);
-        }),
-        
-        onPageFinished: (finish) {
-              setState(() {
-                _loading = false;
-              });
-            },
-      )
-    )    
+      body: Stack(
+        children: <Widget>[
+          WebView(
+            initialMediaPlaybackPolicy: AutoMediaPlaybackPolicy.require_user_action_for_all_media_types,
+            javascriptMode: JavascriptMode.unrestricted,
+            initialUrl: widget.blogUrl,
+            onWebViewCreated: ((WebViewController webViewController){
+              _completer.complete(webViewController);
+            }),
+            
+            onPageFinished: (finish) {
+                  setState(() {
+                    isLoading = false;
+                  });
+                },
+          ),
+          isLoading ? Center( child: Container(
+            
+            width: 80,
+            child: LinearProgressIndicator()),)
+                    : Container(  color: Colors.transparent),
+          ],
+      )    
 
     );
   }

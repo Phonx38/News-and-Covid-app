@@ -5,11 +5,11 @@ class FAQPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromRGBO(248,128,101,1),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('Faqs',style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white),),
+        title: Text('Faqs',style: TextStyle(fontWeight: FontWeight.bold,color: Colors.black87),),
       ),
       body: ListView.builder(
           itemCount: DataSource.questionAnswers.length,
@@ -17,7 +17,7 @@ class FAQPage extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.all(4.0),
               child: Card(
-                elevation: 2,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)
                 ),

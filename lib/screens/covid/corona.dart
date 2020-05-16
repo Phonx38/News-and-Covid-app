@@ -4,7 +4,7 @@ import 'package:flutter_icons/flutter_icons.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:flutter/material.dart';
-import 'package:news_app/screens/HomePage.dart';
+
 import 'package:news_app/screens/covid/countries.dart';
 import 'package:news_app/screens/covid/faq.dart';
 import 'package:news_app/screens/covid/mostaffected.dart';
@@ -58,7 +58,7 @@ class _CoronaVirusState extends State<CoronaVirus> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-      child: AppBar(
+      child: AppBar( 
         // title:  Text("Covid19",style: TextStyle(color: Colors.black,fontSize: 20,fontFamily:'LibreBaskerville-Bold'),),
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -202,7 +202,7 @@ class _CoronaVirusState extends State<CoronaVirus> {
                                ],
                              ),
                            ),
-                          worldData==null?Center(child: CircularProgressIndicator()): WorldWidePanel(worldData: worldData,total: _total,),
+                          worldData==null?Container(height:200,color: Colors.transparent,child: Center(child: CircularProgressIndicator())): WorldWidePanel(worldData: worldData,total: _total,),
                           Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Text("Most Affected Countries",style: TextStyle(
